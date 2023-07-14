@@ -1,0 +1,5 @@
+type Migrate @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  task: String
+}
+ 

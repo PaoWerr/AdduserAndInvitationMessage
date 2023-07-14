@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1043534977757",
+    "project_id": "pushnotifications-ac611",
+    "storage_bucket": "pushnotifications-ac611.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1043534977757:android:887d66d96cd250a8705934",
+        "android_client_info": {
+          "package_name": "com.migrate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1043534977757-pvckuk5ns4kc5pcp4jfou9fj1nk88nef.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGMUS2VV6rzMS7ZQBq9Kh4F9mXzmXK9X4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1043534977757-pvckuk5ns4kc5pcp4jfou9fj1nk88nef.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

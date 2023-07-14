@@ -1,0 +1,118 @@
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Amplify, Notifications } from 'aws-amplify';
+import awsExports from './src/aws-exports';
+import { withAuthenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
+import DeviceInfo from 'react-native-device-info';
+import messaging from '@react-native-firebase/messaging';
+
+
+Amplify.configure(awsExports);
+Notifications.Push.enable();
+
+
+// Retrieves only the current value of 'user' from 'useAuthenticator'
+const userSelector = (context) => [context.user];
+
+const SignOutButton = () => {
+  const { user, signOut } = useAuthenticator(userSelector);
+  return (
+    <TouchableOpacity onPress={signOut} style={styles.buttonSignout}>
+      <Text style={styles.buttonText}>Sign out!</Text>
+    </TouchableOpacity>
+  );
+};
+
+const App = () => {
+
+  useEffect(() => {
+    const handlePermissions = async () => {
+      const status = await Notifications.Push.getPermissionStatus();
+      if (status === 'GRANTED') {
+        console.log(status);
+        return;
+      }
+      if (status === 'SHOULD_REQUEST') {
+        await Notifications.Push.requestPermissions();
+      }
+      if (status === 'SHOULD_EXPLAIN_THEN_REQUEST') {
+        await Notifications.Push.requestPermissions();
+      }
+      
+    };
+
+    const myTokenReceivedHandler = (token) => {
+      console.log('Received push token:', token);
+    };
+    
+    const myNotificationReceivedHandler = (notification) => {
+      console.log('Received push notification:', notification);
+    };
+    
+    const myAsyncNotificationReceivedHandler = async (notification) => {
+      console.log('Received push notification (async):', notification);
+    };
+    
+    const myNotificationOpenedHandler = (notification) => {
+      console.log('Opened push notification:', notification);
+    };
+    
+    const getLaunchNotification = async () => {
+      const launchNotification = await messaging().getInitialNotification();
+      console.log('Launch notification:', launchNotification);
+    };
+    
+    const addEventListeners = () => {
+      const tokenListener = messaging().onTokenRefresh(myTokenReceivedHandler);
+      const foregroundListener = messaging().onMessage(myNotificationReceivedHandler);
+      const backgroundListener = messaging().setBackgroundMessageHandler(myAsyncNotificationReceivedHandler);
+      const openedListener = messaging().onNotificationOpenedApp(myNotificationOpenedHandler);
+    
+
+      return () => {
+        tokenListener.remove();
+        foregroundListener.remove();
+        backgroundListener.remove();
+        openedListener.remove();
+    }};
+    
+
+    handlePermissions();
+    getLaunchNotification();
+    const removeEventListeners = addEventListeners();
+
+    return () => {
+      removeEventListeners();
+    };
+  }, []);
+
+  const getdeviceId = () => {
+    messaging()
+  .getToken()
+  .then(token => {
+    console.log('Device Token:', token);
+  });
+  };
+
+  return (
+    <View>
+      <SignOutButton />
+      <Text>Push Notifications</Text>
+      <TouchableOpacity onPress={getdeviceId} style={styles.buttonSignout}>
+        <Text>Click to show device token</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  buttonSignout: {
+   backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center'
+  },
+});
+
+export default withAuthenticator(App);

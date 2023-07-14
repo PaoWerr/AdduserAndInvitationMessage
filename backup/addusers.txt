@@ -1,0 +1,281 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Modal } from 'react-native';
+import { withAuthenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
+import { Amplify, Auth } from 'aws-amplify';
+import awsExports from './src/aws-exports';
+
+Amplify.configure(awsExports);
+
+const userSelector = (context) => [context.user];
+
+const SignOutButton = () => {
+  const { user, signOut } = useAuthenticator(userSelector);
+  return (
+    <TouchableOpacity onPress={signOut} style={styles.buttonSignout}>
+      <Text style={styles.buttonText}>Sign out!</Text>
+    </TouchableOpacity>
+  );
+};
+
+const AddUserButton = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [resendCodeInProgress, setResendCodeInProgress] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  
+
+  const addUser = async () => {
+    if (username === '' || password === '' || confirmPassword === '' || email === '') {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    try {
+      await Auth.signUp({
+        username,
+        password,
+        attributes: {
+          email,
+        },
+      });
+
+      setShowEmailVerificationModal(true);
+      console.log('User created successfully');
+    } catch (error) {
+      console.log('Error creating user:', error);
+    }
+  };
+
+  const verifyEmail = async () => {
+    try {
+      await Auth.confirmSignUp(username, verificationCode);
+      await Auth.signIn(username, password);
+      Alert.alert('Success', 'Email verified successfully');
+      console.log('Email verified successfully');
+      setShowEmailVerificationModal(false);
+
+      setVerificationCode('');
+      setUsername('');
+      setPassword('');
+      setConfirmPassword('');
+      setEmail('');
+    } catch (error) {
+      console.log('Error verifying email:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prevCountdown) => prevCountdown - 1);
+      }, 1000);
+  
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [countdown]);
+  
+
+  const resendCode = async () => {
+    if (resendCodeInProgress || countdown > 0) {
+      return;
+    }
+  
+    try {
+      setResendCodeInProgress(true);
+      await Auth.resendSignUp(username);
+      Alert.alert('Success', 'Verification code has been resent');
+      console.log('Verification code has been resent');
+  
+      setCountdown(60); // Set the countdown to 60 seconds (1 minute)
+    } catch (error) {
+      console.log('Error resending verification code:', error);
+    } finally {
+      setResendCodeInProgress(false);
+    }
+  };
+
+  return (
+    <View>
+      <TextInput
+        style={styles.input}
+        value={username}
+        onChangeText={setUsername}
+        placeholder="Username"
+      />
+      <TextInput
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Password"
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        placeholder="Confirm Password"
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Email"
+      />
+      <TouchableOpacity onPress={addUser} style={styles.buttonAddUser}>
+        <Text style={styles.buttonText}>Create User</Text>
+      </TouchableOpacity>
+
+      <Modal visible={showEmailVerificationModal} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Email Verification</Text>
+          <Text style={styles.modalText}>Please enter the verification code sent to your email:</Text>
+          <TextInput
+            style={styles.modalInput}
+            value={verificationCode}
+            onChangeText={setVerificationCode}
+            placeholder="Verification Code"
+          />
+          <TouchableOpacity onPress={verifyEmail} style={styles.buttonVerifyEmail}>
+            <Text style={styles.buttonText}>Verify Email</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+  onPress={resendCode}
+  style={styles.buttonResendCode}
+  disabled={resendCodeInProgress || countdown > 0}
+>
+  <Text style={styles.buttonText}>
+    {countdown > 0 ? `Resend Code in ${countdown} seconds` : 'Resend Code'}
+  </Text>
+</TouchableOpacity>
+
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const App = () => {
+  const [users, setUsers] = useState([]);
+
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userList = await Auth.currentAuthenticatedUser();
+        setUsers([userList]);
+      } catch (error) {
+        console.log('Error fetching users:', error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  return (
+    <View>
+      <SignOutButton />
+      <AddUserButton />
+      <Text style={styles.userlist}>User Count: {users.length}</Text>
+      {users.map((user) => (
+        <Text style={styles.userlistName} key={user.username}>{user.username}</Text>
+      ))}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  buttonSignout: {
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginVertical: 8,
+  },
+  buttonAddUser: {
+    backgroundColor: '#00C853',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginVertical: 8,
+  },
+  buttonText: {
+    color: 'white',
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: 'black',
+  },
+  modalText: {
+    fontSize: 15,
+    marginBottom: 16,
+    color: 'black',
+  },
+  modalInput: {
+    height: 40,
+    width: '100%',
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    color: 'black',
+  },
+  buttonVerifyEmail: {
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginVertical: 8,
+  },
+  buttonResendCode: {
+    backgroundColor: '#DDDDDD',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginVertical: 8,
+  },
+  userlist: {
+    fontSize: 15,
+    paddingTop: 20,
+    fontWeight: 'bold'
+  },
+  userlistName: {
+    fontSize: 20,
+    paddingTop: 10,
+    paddingLeft: 5
+  }
+});
+
+export default withAuthenticator(App);

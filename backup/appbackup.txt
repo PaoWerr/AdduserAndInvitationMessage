@@ -1,0 +1,296 @@
+import React, { useState, useEffect } from 'react';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Button
+} from 'react-native';
+import axios from 'axios';
+import PushNotification from "react-native-push-notification";
+
+
+
+//amplify import
+//amplify local setup
+import { Amplify, Notifications } from 'aws-amplify';
+import awsExports from './src/aws-exports';
+import { DataStore, Predicates } from '@aws-amplify/datastore';
+import { Migrate } from './src/models';
+import 'core-js/es/symbol/async-iterator';
+import { withAuthenticator, useAuthenticator } from '@aws-amplify/ui-react-native';
+Amplify.configure(awsExports);
+
+
+
+
+// retrieves only the current value of 'user' from 'useAuthenticator'
+const userSelector = (context) => [context.user]
+
+const SignOutButton = () => {
+  const { user, signOut } = useAuthenticator(userSelector);
+  return (
+    <TouchableOpacity onPress={signOut} style={styles.buttonSignout}>
+      <Text style={styles.buttonText}>Sign out!</Text>
+    </TouchableOpacity>
+  )
+};
+
+
+
+const App = () => {
+    const [tasks, setTasks] = useState([]);
+    const [newTask, setNewTask] = useState('');
+    const [editId, setEditId] = useState(null);
+    
+    useEffect(() => {
+      createChannels();
+    }, []);
+
+    const createChannels = () => {
+      PushNotification.createChannel(
+        {
+            channelId: "test-channel",
+            channelName: "Test Channel"
+        }
+      )
+    }
+
+    const handleNotification = () => {
+      PushNotification.cancelAllLocalNotifications();
+      PushNotification.localNotification(
+        {
+          channelId: "test-channel",
+          title: "NEW TASK ADDED",
+          message: "awdsadawduaduasduawgduawgudagwagduawgu"
+        }
+      )
+      callLambdaFunction();
+    }
+
+     // Call lambda function
+     useEffect(() => {
+      callLambdaFunction();
+    }, []);
+
+    const [responseData, setResponseData] = useState('')
+  
+    const callLambdaFunction = async () => {
+      try {
+        const response = await axios.get('https://ozgh4i93g1.execute-api.ap-southeast-1.amazonaws.com/notifStage/notifresource');
+        console.log(response.data);
+        setResponseData(response.data)
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+
+
+    useEffect(() => {
+      fetchTasks();
+
+      //Realtime-updates subscription
+      const subscription = DataStore.observe(Migrate).subscribe(() => 
+        fetchTasks()
+      );
+    
+      return () => 
+        subscription.unsubscribe();
+    })
+  
+    const fetchTasks = async () => {
+      try {
+        const tasks = await DataStore.query(Migrate, Predicates.ALL);
+        setTasks(tasks.map((task) => ({ id: task.id, text: task.task })));
+      } catch (error) {
+        console.log('Error fetching tasks:', error);
+      }
+    };
+
+    
+
+  
+    const handleAddTask = async () => {
+      if (newTask.length > 0 && !tasks.some(task => task.text === newTask)) {
+        let newTasks;
+  
+        if (editId !== null) {
+          // Update existing task
+          try {
+            const existingTask = await DataStore.query(Migrate, editId);
+            if (existingTask) {
+              existingTask.task = newTask;
+              await DataStore.save(existingTask); // Save the updated task back to the DataStore
+            }
+            newTasks = tasks.map(task =>
+              task.id === editId ? { ...task, text: newTask } : task
+            );
+            setEditId(null);
+          } catch (error) {
+            console.log('Error updating task:', error);
+          }
+        } else {
+          // Add new task
+          try {
+            const newTaskData = new Migrate({ task: newTask });
+            await DataStore.save(newTaskData);
+            newTasks = [...tasks, { id: newTaskData.id, text: newTaskData.task }];
+            
+          } catch (error) {
+            console.log('Error adding new task:', error);
+          }
+        }
+  
+        setTasks(newTasks);
+        setNewTask('');
+  
+        console.log('Tasks saved successfully');
+      } else {
+        alert('Task already exists or input is empty');
+      }
+    };
+  
+    const handleEditTask = async (id) => {
+      try {
+        const task = await DataStore.query(Migrate, id);
+        if (task) {
+          setNewTask(task.task);
+          setEditId(id);
+          console.log('Task is being edited');
+        }
+      } catch (error) {
+        console.log('Error querying task:', error);
+      }
+    };
+  
+    const handleDeleteTask = async (id) => {
+      try {
+        const task = await DataStore.query(Migrate, id);
+        if (task) {
+          await DataStore.delete(Migrate, id);
+          const newTasks = tasks.filter(task => task.id !== id);
+          setTasks(newTasks);
+          console.log('Task deleted');
+        }
+      } catch (error) {
+        console.log('Error deleting task:', error);
+      }
+    };
+  
+  
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.buttonNotif} onPress={() => { handleNotification() }}>
+                            <Text style={styles.buttonText}>sample PushNotification</Text>
+                    </TouchableOpacity>
+
+
+      <Button title="Call Lambda Function" onPress={callLambdaFunction} />
+      <Text style={styles.lambda}>{responseData}</Text>
+       <SignOutButton />
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={newTask}
+          onChangeText={(text) => setNewTask(text)}
+          placeholder="Add a task"
+        />
+        <TouchableOpacity style={styles.button} onPress={handleAddTask}>
+          <Text style={styles.buttonText}>{editId !== null ? 'Save' : 'Add'}</Text>
+        </TouchableOpacity>
+      </View>
+      {tasks.map((Task) => (
+        <View style={styles.task} key={Task.id}>
+          <Text style={styles.taskText}>{Task.text}</Text>
+          <TouchableOpacity
+            style={styles.taskButton}
+            onPress={() => handleEditTask(Task.id)}
+          >
+            <Text style={styles.taskButtonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.taskButton}
+            onPress={() => handleDeleteTask(Task.id)}
+          >
+            <Text style={styles.taskButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    margin: 16,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginRight: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+
+  },
+  buttonSignout: {
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center'
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  task: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  taskText: {
+    flex: 1,
+  },
+  taskButton: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    margin: 5,
+  },
+  taskButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  lambda: {
+    paddingBottom: 50,
+    paddingTop: 30,
+    alignSelf: 'center',
+  },
+  buttonNotif: {
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignSelf: 'center',
+    marginBottom: 50
+  }
+});
+export default withAuthenticator(App);

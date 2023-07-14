@@ -1,0 +1,21 @@
+{
+    "appName": "notifpinpoint",
+    "roleName": "pinpointLambdaRoleb2ca3352",
+    "cloudformationPolicyName": "cloudformationPolicyb2ca3352",
+    "cloudWatchPolicyName": "cloudWatchPolicyb2ca3352",
+    "pinpointPolicyName": "pinpointPolicyb2ca3352",
+    "authPolicyName": "pinpoint_amplify_b2ca3352",
+    "unauthPolicyName": "pinpoint_amplify_b2ca3352",
+    "authRoleName": {
+        "Ref": "AuthRoleName"
+    },
+    "unauthRoleName": {
+        "Ref": "UnauthRoleName"
+    },
+    "authRoleArn": {
+        "Fn::GetAtt": [
+            "AuthRole",
+            "Arn"
+        ]
+    }
+}

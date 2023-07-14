@@ -1,0 +1,43 @@
+import React, { useEffect } from 'react';
+import { Button, View } from 'react-native';
+import { Amplify, Analytics, Notifications } from 'aws-amplify';
+import { withInAppMessaging } from '@aws-amplify/ui-react-native';
+import awsExports from './src/aws-exports';
+Amplify.configure(awsExports);
+
+const { InAppMessaging } = Notifications;
+
+// To display your in-app message, make sure this event name matches one you created
+// in an In-App Messaging campaign!
+const myFirstEvent = { name: 'my_first_event' };
+
+const App = () => {
+  useEffect(() => {
+    // Messages from your campaigns need to be synced from the backend before they
+    // can be displayed. You can trigger this anywhere in your app. Here you are
+    // syncing just once when this component (your app) renders for the first time.
+    InAppMessaging.syncMessages();
+  }, []);
+
+  const handleRecordEvent = async () => {
+    const event = {
+      name: 'my_first_event',
+      attributes: { color: 'red' },
+      metrics: { quantity: 10 }
+    };
+    await Analytics.record(event);
+    InAppMessaging.dispatchEvent(myFirstEvent);
+  };
+
+  return (
+    <View>
+      {/* This button triggers the recording of the event and displays the in-app message */}
+      <Button
+        onPress={handleRecordEvent}
+        title="Record Event and Display Message"
+      />
+    </View>
+  );
+};
+
+export default withInAppMessaging(App);

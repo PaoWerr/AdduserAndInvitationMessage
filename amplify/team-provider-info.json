@@ -1,0 +1,57 @@
+{
+  "envtom": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-migrate-envtom-173201-authRole",
+      "UnauthRoleArn": "arn:aws:iam::990176535765:role/amplify-migrate-envtom-173201-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::990176535765:role/amplify-migrate-envtom-173201-authRole",
+      "Region": "ap-southeast-1",
+      "DeploymentBucketName": "amplify-migrate-envtom-173201-deployment",
+      "UnauthRoleName": "amplify-migrate-envtom-173201-unauthRole",
+      "StackName": "amplify-migrate-envtom-173201",
+      "StackId": "arn:aws:cloudformation:ap-southeast-1:990176535765:stack/amplify-migrate-envtom-173201/27e85fb0-09cd-11ee-9a0c-0239e01d3110",
+      "AmplifyAppId": "d1ijub9ftnpdnq",
+      "APIGatewayAuthURL": "https://s3.amazonaws.com/amplify-migrate-envtom-173201-deployment/amplify-cfn-templates/api/APIGatewayAuthStack.json"
+    },
+    "categories": {
+      "auth": {
+        "migrated3907a8c": {}
+      }
+    }
+  },
+  "paodev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-migrate-paodev-155536-authRole",
+      "UnauthRoleArn": "arn:aws:iam::592451816228:role/amplify-migrate-paodev-155536-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::592451816228:role/amplify-migrate-paodev-155536-authRole",
+      "Region": "ap-southeast-1",
+      "DeploymentBucketName": "amplify-migrate-paodev-155536-deployment",
+      "UnauthRoleName": "amplify-migrate-paodev-155536-unauthRole",
+      "StackName": "amplify-migrate-paodev-155536",
+      "StackId": "arn:aws:cloudformation:ap-southeast-1:592451816228:stack/amplify-migrate-paodev-155536/2b12b720-1a40-11ee-b4de-0a01aa625182",
+      "AmplifyAppId": "dpo4ykf90bsfl"
+    },
+    "categories": {
+      "auth": {
+        "migrated3907a8c": {}
+      },
+      "api": {
+        "migrate": {}
+      },
+      "analytics": {
+        "Pinpoint": {
+          "Name": "notifpinpoint-paodev",
+          "Id": "80050dd6b78140ff9acc39b0c4d6ca92",
+          "Region": "ap-southeast-1"
+        },
+        "notifpinpoint": {}
+      },
+      "notifications": {
+        "Pinpoint": {
+          "Name": "notifpinpoint-paodev",
+          "Id": "80050dd6b78140ff9acc39b0c4d6ca92",
+          "Region": "ap-southeast-1"
+        }
+      }
+    }
+  }
+}
